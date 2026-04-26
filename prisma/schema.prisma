@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  shops Shop[]
+  users User[]
+}
+
+model Shop {
+  id        String   @id @default(cuid())
+  name      String
+  address   String?
+  timezone  String   @default("America/New_York")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  items           Item[]
+  wasteEvents     WasteEvent[]
+  inventoryEvents InventoryEvent[]
+
+  @@index([organizationId])
+}
+
+model User {
+  id        String   @id @default(cuid())
+  clerkId   String   @unique
+  email     String   @unique
+  name      String?
+  role      Role     @default(ADMIN)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  wasteEvents     WasteEvent[]
+  inventoryEvents InventoryEvent[]
+
+  @@index([organizationId])
+}
+
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model Item {
+  id           String   @id @default(cuid())
+  name         String
+  category     String
+  unit         String
+  parLevel     Float    @default(0)
+  currentQty   Float    @default(0)
+  costPerUnit  Float    @default(0)
+  supplier     String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  shopId String
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  wasteEvents     WasteEvent[]
+  inventoryEvents InventoryEvent[]
+
+  @@index([shopId])
+}
+
+model WasteEvent {
+  id        String   @id @default(cuid())
+  quantity  Float
+  reason    String?
+  createdAt DateTime @default(now())
+
+  shopId String
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  itemId String
+  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([shopId])
+  @@index([itemId])
+}
+
+model InventoryEvent {
+  id        String            @id @default(cuid())
+  type      InventoryEventType
+  quantity  Float
+  notes     String?
+  createdAt DateTime          @default(now())
+
+  shopId String
+  shop   Shop @relation(fields: [shopId], references: [id], onDelete: Cascade)
+
+  itemId String
+  item   Item @relation(fields: [itemId], references: [id], onDelete: Cascade)
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id], onDelete: SetNull)
+
+  @@index([shopId])
+  @@index([itemId])
+}
+
+enum InventoryEventType {
+  RECEIVED
+  ADJUSTED
+  MARKED_OUT
+  MARKED_LOW
+}
